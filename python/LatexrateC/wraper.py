@@ -1,0 +1,52 @@
+import ctypes
+
+# Load the header-only library (no .c file to compile)
+lib = ctypes.windll.LoadLibrary('C:\\Users\\48733\\Documents\\projekty\\latex\\LatexrateC\python\\LatexrateC\\LatexrateC.dll')  # The library is loaded by name, not file
+
+# Define custom types
+class CalcResult(ctypes.Structure):
+    _fields_ = [
+        ("xs", ctypes.POINTER(ctypes.c_float)),
+        ("ys", ctypes.POINTER(ctypes.c_float)),
+        ("size", ctypes.c_size_t),
+    ]
+
+# Define function prototypes
+calc = lib.calc
+calc.argtypes = [ctypes.CFUNCTYPE(ctypes.c_float, ctypes.c_float), ctypes.c_float, ctypes.c_float, ctypes.c_size_t]
+calc.restype = CalcResult
+
+save_calc_result = lib.save_calc_result
+save_calc_result.argtypes = [CalcResult, ctypes.c_char_p]
+save_calc_result.restype = ctypes.c_bool
+
+gen_latex = lib.gen_latex
+gen_latex.argtypes = [ctypes.c_char_p, ctypes.c_char_p, ctypes.c_char_p]
+
+gen_file_name = lib.gen_file_name
+gen_file_name.argtypes = [ctypes.c_char_p, ctypes.c_char_p, ctypes.c_char_p]
+
+
+
+# Function to call your C functions
+def calculate_plot_data(func, a, b, n):
+    result = calc(ctypes.CFUNCTYPE(ctypes.c_float, ctypes.c_float)(func), ctypes.c_float(a), ctypes.c_float(b), ctypes.c_size_t(n))
+    xs = ctypes.cast(result.xs, ctypes.POINTER(ctypes.c_float * result.size)).contents
+    ys = ctypes.cast(result.ys, ctypes.POINTER(ctypes.c_float * result.size)).contents
+    return list(xs), list(ys)
+
+def save_plot_data(data, name):
+    xs = (ctypes.c_float * len(data[0]))(*data[0])
+    ys = (ctypes.c_float * len(data[1]))(*data[1])
+    return save_calc_result(CalcResult(xs, ys, len(data[0])), name.encode('utf-8'))
+
+def generate_latex(file_name_plot, file_name_data, func_name):
+    gen_latex(file_name_plot.encode('utf-8'), file_name_data.encode('utf-8'), func_name.encode('utf-8'))
+
+def generate_file_names(func_name):
+    data_file = ctypes.create_string_buffer(256)
+    plot_file = ctypes.create_string_buffer(256)
+    gen_file_name(func_name.encode('utf-8'), data_file, plot_file)
+    return data_file.value.decode('utf-8'), plot_file.value.decode('utf-8')
+
+# Add any additional functions or utility code you need here
