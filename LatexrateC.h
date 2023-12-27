@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <math.h>
+#include <string.h>
 
 // Define a custom function pointer type
 typedef float (*Real_Function)(float);
@@ -36,7 +37,7 @@ bool save(Calc_Result a, const char* name);
 void write_latex_line(FILE*, const char* line);
 void gen_latex(const char* file_name_plot, const char* file_name_data, const char* func_name);
 void gen_file_name(const char* func_name, char* file_name_data, char* file_name_plot);
-void gen_latex_code_snip(FILE* out_file, const char* file_name);
+void gen_latex_code_snip(FILE* out_file,const char* function_name, const char* file_name);
 FILE* create_latex_doc(const char* name);
 void write_header(FILE* file);
 void write_load_plot(FILE* file, const char* file_name_plot );
@@ -129,21 +130,31 @@ void gen_file_name(const char* func_name, char* file_name_data, char* file_name_
   snprintf(file_name_plot, 256, "%s%s%s", path, func_name, plot_file_extension);
 }
 
-void gen_latex_code_snip(FILE* out_file, const char* file_name)
+void gen_latex_code_snip(FILE* out_file,const char* functionName, const char* file_name)
 {
   FILE *file = fopen(file_name, "r");
   if (file == NULL) {
     perror("Error opening file");
     exit(1);
   }
+  bool in_function=false;
   const int max_size = 256;
-  char tmp[max_size];
-  
+  char line[max_size];
   write_latex_line(out_file, "\\begin{verbatim}");
-  while(fgets(tmp,max_size, file))
-    {
-      write_latex_line(out_file, tmp);
+  while (fgets(line, sizeof(line), file) != NULL) {
+        if (strstr(line, functionName) != NULL) {
+            in_function = true;
+        }
+
+        if (in_function) {
+	  write_latex_line(out_file, line);
+        }
+
+        if (strstr(line, "}") != NULL && in_function) {
+            break;
+        }
     }
+
   write_latex_line(out_file, "\\end{verbatim}");
   fclose(file);
 }
@@ -169,12 +180,14 @@ void write_header(FILE* file)
 }
  
 void write_load_plot(FILE* file, const char* file_name_plot )
-{ 
+{
+  write_latex_line(file,"\\begin{center}");
   write_latex_line(file,"\\begin{minipage}{\\textwidth}");
   char tmp[256];
   sprintf(tmp, "\\input{%s}", file_name_plot);
   write_latex_line(file,tmp);
   write_latex_line(file,"\\end{minipage}");
+  write_latex_line(file,"\\end{center}");
 }
 
 void calc_and_plot(FILE* file, Named_Function function, Plot_Config plot)

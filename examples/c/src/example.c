@@ -6,7 +6,7 @@ float parabola(float x)
 {
   return x*x;
 }
- 
+
 int main()
 {
   //Create empty file
@@ -17,6 +17,7 @@ int main()
   
   //Begin section
   write_latex_line(doc,"\\section{2D plots}");
+  write_latex_line(doc,"In this section we will draw plots of 3 functions.");
   
   //Pick functions to be ploted
   #define func_number 3
@@ -36,9 +37,9 @@ int main()
   
   //Begin section
   write_latex_line(doc,"\\section{Code}");
-  
+  write_latex_line(doc,"In this section we will show code snipet showing implementation of function used to calculate parabola for this example..");  
   //Write code from file to latex document
-  gen_latex_code_snip(doc, "../src/example.c");
+  gen_latex_code_snip(doc, "parabola", "../src/example.c");
 
   //End document
   write_latex_line(doc,"\\end{document}");
