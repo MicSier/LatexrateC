@@ -20,12 +20,27 @@ typedef struct {
   size_t size;
 } Calc_Result;
 
+typedef struct {
+  float a;
+  float b;
+} Axis_Config;
+
+typedef struct {
+  int grid_count;
+  Axis_Config x_axis;
+  Axis_Config y_axis;
+} Plot_Config;
+
 Calc_Result calc(Real_Function func, float a, float b, size_t n);
 bool save(Calc_Result a, const char* name);
 void write_latex_line(FILE*, const char* line);
 void gen_latex(const char* file_name_plot, const char* file_name_data, const char* func_name);
 void gen_file_name(const char* func_name, char* file_name_data, char* file_name_plot);
 void gen_latex_code_snip(FILE* out_file, const char* file_name);
+FILE* create_latex_doc(const char* name);
+void write_header(FILE* file);
+void write_load_plot(FILE* file, const char* file_name_plot );
+void calc_and_plot(FILE* file, Named_Function function, Plot_Config plot);
 
 #endif // LatexrateC_H_
 
@@ -133,4 +148,54 @@ void gen_latex_code_snip(FILE* out_file, const char* file_name)
   fclose(file);
 }
 
+FILE* create_latex_doc(const char* name)
+{
+    FILE *file = fopen(name, "w");
+  if (file == NULL) {
+    perror("Error opening file");
+    exit(1);
+  }
+  return file;
+}
+
+void write_header(FILE* file)
+{
+  write_latex_line(file, "\\documentclass{article}");
+  write_latex_line(file, "\\usepackage[utf8]{inputenc}");
+  write_latex_line(file, "\\usepackage{pgfplots}");
+  write_latex_line(file, "\\pgfplotsset{compat=1.18}");
+  write_latex_line(file, "\\usepackage{verbatim}");
+  write_latex_line(file,"\\begin{document}");
+}
+ 
+void write_load_plot(FILE* file, const char* file_name_plot )
+{ 
+  write_latex_line(file,"\\begin{minipage}{\\textwidth}");
+  char tmp[256];
+  sprintf(tmp, "\\input{%s}", file_name_plot);
+  write_latex_line(file,tmp);
+  write_latex_line(file,"\\end{minipage}");
+}
+
+void calc_and_plot(FILE* file, Named_Function function, Plot_Config plot)
+{
+    //Calculate plot data
+    Calc_Result res = calc(function.func,plot.x_axis.a,plot.x_axis.b,plot.grid_count);
+
+    //Append file extensions to function name to create name of the files
+    char file_name_data[256], file_name_plot[256];
+    gen_file_name(function.name, file_name_data, file_name_plot);
+
+    //Save calculated plot data to file
+    if(!save_calc_result(res, file_name_data)){
+      
+      //Generate seperate tex file defining plot from data file
+      gen_latex(file_name_plot, file_name_data, function.name);
+    }
+    free(res.xs);
+    free(res.ys);
+    
+    //Load plot from seperate file 
+    write_load_plot(file, file_name_plot);
+}
 #endif //LatexrateC_IMPLEMENTATION
