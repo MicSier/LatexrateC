@@ -1,2 +1,4 @@
 # Ignore build artifacts
 examples/c/build/
+# Ignore developer helper directory
+sandbox/

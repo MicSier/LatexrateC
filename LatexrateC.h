@@ -6,9 +6,12 @@
 #include <stdbool.h>
 #include <math.h>
 #include <string.h>
+#include <stdarg.h>
 
 // Define a custom function pointer type
 typedef float (*Real_Function)(float);
+
+typedef bool (*Predicate)(Real_Function,float);
 
 typedef struct {
   Real_Function func;
@@ -34,15 +37,17 @@ typedef struct {
 
 Calc_Result calc(Real_Function func, float a, float b, size_t n);
 bool save(Calc_Result a, const char* name);
-void write_latex_line(FILE*, const char* line);
-void gen_latex(const char* file_name_plot, const char* file_name_data, const char* func_name);
+void write_line(FILE* file, const char* line);
+void gen_name(const char* file_name_plot, const char* file_name_data, const char* func_name);
 void gen_file_name(const char* func_name, char* file_name_data, char* file_name_plot);
-void gen_latex_code_snip(FILE* out_file,const char* function_name, const char* file_name);
-FILE* create_latex_doc(const char* name);
+void gen_codev_snip(FILE* out_file,const char* function_name, const char* file_name);
+void gen_code_snip(FILE* out_file, const char* function_name, const char* file_name);
+FILE* create_doc(const char* name);
 void write_header(FILE* file);
 void write_load_plot(FILE* file, const char* file_name_plot );
 void calc_and_plot(FILE* file, Named_Function function, Plot_Config plot);
-
+char* str_int(const char* format, ...);
+void run_test(FILE *doc,Named_Function f, float test_x, Predicate p);
 #endif // LatexrateC_H_
 
 #ifdef LatexrateC_IMPLEMENTATION
@@ -95,7 +100,7 @@ bool save_calc_result(Calc_Result a, const char* name)
     return 1; // Indicate an error
 }
 
-void write_latex_line(FILE* file, const char* line)
+void write_line(FILE* file, const char* line)
 {
   fprintf(file, "%s\n", line);
 }
@@ -109,13 +114,13 @@ void gen_latex(const char* file_name_plot, const char* file_name_data, const cha
   }
   char tmp[256];
   
-  write_latex_line(file, "\\begin{tikzpicture}");
+  write_line(file, "\\begin{tikzpicture}");
   sprintf(tmp, "\\begin{axis}[axis lines = middle, xlabel=$x_0$, ylabel=$y(x)$, title={%s}]", func_name);
-  write_latex_line(file, tmp);
+  write_line(file, tmp);
   sprintf(tmp,"\\addplot[color=red, dashed] table[meta=y] {%s};", file_name_data);
-  write_latex_line(file, tmp);
-  write_latex_line(file, "\\end{axis}");
-  write_latex_line(file, "\\end{tikzpicture}");
+  write_line(file, tmp);
+  write_line(file, "\\end{axis}");
+  write_line(file, "\\end{tikzpicture}");
 
   fclose(file);
 }
@@ -130,9 +135,16 @@ void gen_file_name(const char* func_name, char* file_name_data, char* file_name_
   snprintf(file_name_plot, 256, "%s%s%s", path, func_name, plot_file_extension);
 }
 
-void gen_latex_code_snip(FILE* out_file,const char* functionName, const char* file_name)
+void gen_code_snip(FILE* out_file,const char* function_name, const char* file_name)
 {
-  FILE *file = fopen(file_name, "r");
+  write_line(out_file, "\\begin{verbatim}");
+  gen_codev_snip(out_file, function_name, file_name);
+  write_line(out_file, "\\end{verbatim}");
+}
+
+void gen_codev_snip(FILE* out_file, const char* function_name, const char* file_name)
+{
+ FILE *file = fopen(file_name, "r");
   if (file == NULL) {
     perror("Error opening file");
     exit(1);
@@ -140,22 +152,20 @@ void gen_latex_code_snip(FILE* out_file,const char* functionName, const char* fi
   bool in_function=false;
   const int max_size = 256;
   char line[max_size];
-  write_latex_line(out_file, "\\begin{verbatim}");
+
   while (fgets(line, sizeof(line), file) != NULL) {
-        if (strstr(line, functionName) != NULL) {
+        if (strstr(line, function_name) != NULL) {
             in_function = true;
         }
 
         if (in_function) {
-	  write_latex_line(out_file, line);
+	  write_line(out_file, line);
         }
 
         if (strstr(line, "}") != NULL && in_function) {
             break;
         }
     }
-
-  write_latex_line(out_file, "\\end{verbatim}");
   fclose(file);
 }
 
@@ -171,23 +181,23 @@ FILE* create_latex_doc(const char* name)
 
 void write_header(FILE* file)
 {
-  write_latex_line(file, "\\documentclass{article}");
-  write_latex_line(file, "\\usepackage[utf8]{inputenc}");
-  write_latex_line(file, "\\usepackage{pgfplots}");
-  write_latex_line(file, "\\pgfplotsset{compat=1.18}");
-  write_latex_line(file, "\\usepackage{verbatim}");
-  write_latex_line(file,"\\begin{document}");
+  write_line(file, "\\documentclass{article}");
+  write_line(file, "\\usepackage[utf8]{inputenc}");
+  write_line(file, "\\usepackage{pgfplots}");
+  write_line(file, "\\pgfplotsset{compat=1.18}");
+  write_line(file, "\\usepackage{verbatim}");
+  write_line(file,"\\begin{document}");
 }
  
 void write_load_plot(FILE* file, const char* file_name_plot )
 {
-  write_latex_line(file,"\\begin{center}");
-  write_latex_line(file,"\\begin{minipage}{\\textwidth}");
+  write_line(file,"\\begin{center}");
+  write_line(file,"\\begin{minipage}{\\textwidth}");
   char tmp[256];
   sprintf(tmp, "\\input{%s}", file_name_plot);
-  write_latex_line(file,tmp);
-  write_latex_line(file,"\\end{minipage}");
-  write_latex_line(file,"\\end{center}");
+  write_line(file,tmp);
+  write_line(file,"\\end{minipage}");
+  write_line(file,"\\end{center}");
 }
 
 void calc_and_plot(FILE* file, Named_Function function, Plot_Config plot)
@@ -210,5 +220,28 @@ void calc_and_plot(FILE* file, Named_Function function, Plot_Config plot)
     
     //Load plot from seperate file 
     write_load_plot(file, file_name_plot);
+}
+
+char* str_int(const char* format, ...)
+{
+    va_list args;
+    va_start(args, format);
+
+    size_t size = vsnprintf(NULL, 0, format, args);
+    char* result = (char*) malloc (size+1);
+    vsprintf(result,format, args);
+
+    va_end(args);
+    return result;
+}
+
+
+void run_test(FILE *doc,Named_Function f, float test_x, Predicate p)
+{
+  float ya=f.func(test_x),yb=f.func(-test_x);
+  bool test_result = p(f.func,test_x);
+  char* test_text = str_int("\\[%s(%.2f)= %.4f\\] and \\[%s(%.2f)=%.4f\\], and therefore \\[%s(%.2f)%s%s(%.2f)\\] so the function %s the test.",f.name,test_x,ya,f.name,-test_x,yb,f.name,test_x,(test_result)?"=":"\\neq ",f.name,-test_x,(test_result)?"passes":"failes");
+    
+  write_line(doc,test_text); 
 }
 #endif //LatexrateC_IMPLEMENTATION
