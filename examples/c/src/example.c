@@ -2,6 +2,12 @@
 #define LatexrateC_IMPLEMENTATION
 #include "../../../LatexrateC.h"
 
+// Macro to generate function definition code with expression as a string
+#define CREATE_FUNCTIONEQUATION (text, expression, result_type, function_name, parameter_list) \
+    result_type function_name parameter_list { return (expression);}\
+    write_line(doc, str_int(text, #expression)); 
+
+
 int main()
 {
   
@@ -28,7 +34,7 @@ int main()
   };
   
   for(int i=0;i<func_number;i++){
-    calc_and_plot(doc, functions[i], plot_config);
+    calc_and_plot(doc, functions[i], plot_config, "../build");
   }
 
   //Begin section
@@ -38,8 +44,9 @@ int main()
   gen_code_snip(doc, "parabola", "../src/example.c");
 
   write_line(doc,"Let's run some tests on our functions to see if it has properties some interesting properties.");
-  write_line(doc, "Function is called even, if $f(x)=f(-x)$.");
-  bool is_even(Real_Function f, float x){	return (f(x) == f(-x));}
+  
+  CREATE_FUNCTIONEQUATION "Function is called even, if %s.", f(x) == f(-x), bool, is_even, (Real_Function f, float x); 
+
   float x= 1.63;
   write_line(doc,str_int("We can check if they are even for some specific argument lets say x=%1.2f.",x));
 
@@ -77,9 +84,9 @@ bool build_example()
     
     cmd.count = 0;
     nob_cmd_append(&cmd, "gcc");
-    nob_cmd_append(&cmd, "-Wall", "-Wextra", "-g");
+    nob_cmd_append(&cmd, "-Wall", "-Wextra", "-g", "-E");
     nob_cmd_append(&cmd, "-o", "./example");
-    nob_cmd_append(&cmd, "../src/example.c");
+    nob_cmd_append(&cmd, "../src/example.c"); 
     nob_cmd_append(&cmd, "-DRUN");
     if (!nob_cmd_run_sync(cmd)) nob_return_defer(false);
 

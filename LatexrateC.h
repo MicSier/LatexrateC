@@ -125,11 +125,11 @@ void gen_latex(const char* file_name_plot, const char* file_name_data, const cha
   fclose(file);
 }
 
-void gen_file_name(const char* func_name, char* file_name_data, char* file_name_plot)
+void gen_file_name(const char* func_name, char* file_name_data, char* file_name_plot, const char* path)
 {
   const char* data_file_extension = ".txt";
   const char* plot_file_extension = ".tex";
-  const char* path = "../build/"; 
+  
   // Assuming 'func_name' is a null-terminated string
   snprintf(file_name_data, 256, "%s%s%s", path, func_name, data_file_extension);
   snprintf(file_name_plot, 256, "%s%s%s", path, func_name, plot_file_extension);
@@ -200,14 +200,15 @@ void write_load_plot(FILE* file, const char* file_name_plot )
   write_line(file,"\\end{center}");
 }
 
-void calc_and_plot(FILE* file, Named_Function function, Plot_Config plot)
+void calc_and_plot(FILE* file, Named_Function function, Plot_Config plot, const char* path)
 {
     //Calculate plot data
     Calc_Result res = calc(function.func,plot.x_axis.a,plot.x_axis.b,plot.grid_count);
 
     //Append file extensions to function name to create name of the files
     char file_name_data[256], file_name_plot[256];
-    gen_file_name(function.name, file_name_data, file_name_plot);
+
+    gen_file_name(function.name, file_name_data, file_name_plot, path);
 
     //Save calculated plot data to file
     if(!save_calc_result(res, file_name_data)){

@@ -1,4 +1,9 @@
 # Ignore build artifacts
 examples/c/build/
+examples/visual c++/example/x64
+# Ignore vs configs
+.vs
+examples/visual c++/.vs
+CppProperties.json
 # Ignore developer helper directory
 sandbox/
