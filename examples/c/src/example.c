@@ -12,7 +12,7 @@ int main()
 {
   
   //Create empty file
-  FILE* doc = create_latex_doc("example.tex");
+  FILE* doc = create_doc("example.tex");
   
   //Write standard header for article class document
   write_header(doc);
