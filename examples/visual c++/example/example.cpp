@@ -19,7 +19,7 @@ int main()
 
 	//Begin section
 	write_line(doc, "\\section{2D plots}");
-	write_line(doc, "In this section we will draw plots of 3 functions.");
+	write_line(doc, "In this section we will first draw a simple plot.");
 
 	//Pick functions to be ploted
 	Named_Function function = { parabola, "Parabola" };
@@ -28,13 +28,19 @@ int main()
 	Plot_Config plot_config = default_plot_config();
 	calc_and_plot(doc, &function, plot_config, "");
 
-	Named_Function functions[2] = { {sinf, "Sinus"}, {cosf, "Cosinus"} };
+	write_line(doc, "Next we will draw a graph containing two plots with diffrent colors and line styles.");
+
+	Named_Function functions[2] = { {sinf, "sin(x)"}, {cosf, "cos(x)"} };
 	plot_config.plot_count = 2;
 	Line_Color line_color[] = { COLOR_RED, COLOR_BLUE };
 	Line_Style line_style[] = { STYLE_DASHED, STYLE_SOLID };
 	plot_config.line_color = line_color;
 	plot_config.line_style = line_style;
+	plot_config.description = "Plot of sin and cos functions.";
+	plot_config.title = "sin(x) and cos(x)";
 	calc_and_plot(doc, functions, plot_config, "");
+
+	
 
 	//Begin section
 	write_line(doc, "\\section{Code}");

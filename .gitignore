@@ -1,6 +1,7 @@
 # Ignore build artifacts
 examples/c/build/
 examples/visual c++/example/x64
+examples/visual c++/example/example
 # Ignore vs configs
 .vs
 examples/visual c++/.vs
