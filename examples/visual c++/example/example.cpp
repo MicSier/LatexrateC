@@ -6,8 +6,8 @@
 #include "../../../LatexrateC.h"
 
 float parabola(float x) { return x * x; }
-bool is_even(Real_Function f, float x) { return (f(x) == f(-x)); }
-
+bool is_symmetrical(Real_Function f, float x) { return (f(x) == f(-x)); }
+float saddle(float x, float y) { return x * x - y * y; }
 
 int main()
 {
@@ -40,6 +40,11 @@ int main()
 	plot_config.title = "sin(x) and cos(x)";
 	calc_and_plot(doc, functions, plot_config, "");
 
+	write_line(doc, "Let's now draw a simple 3D plot.");
+	Named_Function_3D function_3D = { saddle,"saddle(x,y)" };
+	Plot_Config_3D plot_config_3D = default_plot_config_3D();
+	plot_config_3D.title = "saddle";
+	calc_and_plot_3D(doc, &function_3D, plot_config_3D, "");
 	
 
 	//Begin section
@@ -49,12 +54,12 @@ int main()
 	gen_code_snip(doc, "parabola", "../../example.cpp");
 
 	write_line(doc, "Let's run some tests on our functions to see if it has properties some interesting properties.");
-	write_line(doc, "Function is called even, if $f(x)=f(-x)$.");
+	write_line(doc, "Function is called symmetrical, if $f(x)=f(-x)$.");
 	float x = 1.63;
-	write_line(doc, str_int("We can check if they are even for some specific argument lets say x=%1.2f.", x));
+	write_line(doc, str_int("We can check if they are symmetrical for some specific argument lets say x=%1.2f.", x));
 
 	for (int i = 0; i < 2; i++) {
-		run_test(doc, functions[i], x, is_even);
+		run_test(doc, functions[i], x, is_symmetrical);
 	}
 
 	//Begin section

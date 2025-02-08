@@ -1,3 +1,7 @@
+// This is a source of https://github.com/MicSier/LatexrateC
+
+// Copyright 2024 Michal Sieradzki <michal97231@gmail.com>
+
 #ifndef LatexrateC_H_
 #define LatexrateC_H_
 
@@ -10,7 +14,7 @@
 
 // Define a custom function pointer type
 typedef float (*Real_Function)(float);
-
+typedef float (*Real_Function_3D)(float, float);
 typedef bool (*Predicate)(Real_Function, float);
 
 typedef struct {
@@ -19,10 +23,9 @@ typedef struct {
 } Named_Function;
 
 typedef struct {
-	float* xs;
-	float* ys;
-	size_t size;
-} Calc_Result;
+	Real_Function_3D func;
+	const char* name;
+} Named_Function_3D;
 
 typedef struct {
 	float a;
@@ -43,36 +46,49 @@ enum Line_Style
 	STYLE_DASHED
 };
 
-
 typedef struct {
-	int grid_count;
+	size_t grid_count;
 	Axis_Config x_axis;
 	Axis_Config y_axis;
 	unsigned short plot_count;
-	Line_Color* line_color;
-	Line_Style* line_style;
+	enum Line_Color* line_color;
+	enum Line_Style* line_style;
 	const char* title;
 	const char* description;
 } Plot_Config;
 
-const char* to_color_name(Line_Color line_color);
-const char* to_style_name(Line_Style line_style);
+typedef struct {
+	size_t grid_count;
+	Axis_Config x_axis;
+	Axis_Config y_axis;
+	Axis_Config z_axis;
+	unsigned short plot_count;
+	enum Line_Color* line_color;
+	enum Line_Style* line_style;
+	const char* title;
+	const char* description;
+} Plot_Config_3D;
+
+const char* to_color_name(enum Line_Color line_color);
+const char* to_style_name(enum Line_Style line_style);
 Plot_Config default_plot_config();
+Plot_Config_3D default_plot_config_3D();
 bool calc_and_save(Named_Function* functions, Plot_Config plot);
+bool calc_and_save_3D(Named_Function_3D* functions, Plot_Config_3D plot);
 void write_line(FILE* file, const char* line);
 void gen_codev_snip(FILE* out_file, const char* function_name, const char* file_name);
 void gen_code_snip(FILE* out_file, const char* function_name, const char* file_name);
-FILE* create_doc(const char* name);
+FILE* create_latex_doc(const char* name);
 void write_header(FILE* file);
 void write_load_plot(FILE* file, const char* file_name_plot);
-void calc_and_plot(FILE* file, Named_Function function, Plot_Config plot);
+void calc_and_plot(FILE* file, Named_Function* functions, Plot_Config plot, const char* path);
 char* str_int(const char* format, ...);
 void run_test(FILE* doc, Named_Function f, float test_x, Predicate p);
 #endif // LatexrateC_H_
 
 #ifdef LatexrateC_IMPLEMENTATION
 
-const char* to_color_name(Line_Color line_color)
+const char* to_color_name(enum Line_Color line_color)
 {
 	switch (line_color)
 	{
@@ -83,7 +99,7 @@ const char* to_color_name(Line_Color line_color)
 	}
 }
 
-const char* to_style_name(Line_Style line_style)
+const char* to_style_name(enum Line_Style line_style)
 {
 	switch (line_style)
 	{
@@ -95,8 +111,8 @@ const char* to_style_name(Line_Style line_style)
 
 Plot_Config default_plot_config()
 {
-	Line_Color line_color[] = { COLOR_RED };
-	Line_Style line_style[] = { STYLE_SOLID };
+	enum Line_Color line_color[] = { COLOR_RED };
+	enum Line_Style line_style[] = { STYLE_SOLID };
 
 	/*   line_color = (Line_Color*)malloc(sizeof(line_color));
 		line*/
@@ -104,6 +120,27 @@ Plot_Config default_plot_config()
 		.grid_count = 100,
 		.x_axis = {.a = -5, .b = 5, .label = "x"},
 		.y_axis = {.a = -5, .b = 5, .label = "y(x)"},
+		.plot_count = 1,
+		.line_color = line_color,
+		.line_style = line_style,
+		.title = "Plot",
+		.description = ""
+	};
+	return plot_config;
+}
+
+Plot_Config_3D default_plot_config_3D()
+{
+	enum Line_Color line_color[] = { COLOR_RED };
+	enum Line_Style line_style[] = { STYLE_SOLID };
+
+	/*   line_color = (Line_Color*)malloc(sizeof(line_color));
+		line*/
+	Plot_Config_3D plot_config = {
+		.grid_count = 20,
+		.x_axis = {.a = -5, .b = 5, .label = "x"},
+		.y_axis = {.a = -5, .b = 5, .label = "y"},
+		.z_axis = {.a = -5, .b =5, .label = "z(x,y)"},
 		.plot_count = 1,
 		.line_color = line_color,
 		.line_style = line_style,
@@ -148,12 +185,51 @@ error:
 	return 1; // Indicate an error
 }
 
+bool calc_and_save_3D(Named_Function_3D* functions, Plot_Config_3D plot)
+{
+	FILE* filePointer;
+
+	for (int j = 0; j < plot.plot_count; j++)
+	{
+		filePointer = fopen(str_int("%s.%s", functions[j].name, "txt"), "w");
+
+		// Check if the file was opened successfully
+		if (filePointer == NULL) {
+			perror("Error opening file");
+			goto error; // Jump to the cleanup label
+		}
+
+		// Write data to the file
+		fprintf(filePointer, "x y z\n");
+		for (size_t i = 0; i < plot.grid_count; i++) {
+			float x = plot.x_axis.a + i * (plot.x_axis.b - plot.x_axis.a) / (plot.grid_count - 1);
+
+			for (size_t k = 0; k < plot.grid_count; k++) {
+				float y = plot.y_axis.a + k * (plot.y_axis.b - plot.y_axis.a) / (plot.grid_count - 1);
+				float z = functions[j].func(x,y);
+				fprintf(filePointer, "%f %f %f\n", x, y, z);
+			}			
+		}
+
+		fclose(filePointer);
+	}
+	return 0;
+
+error:
+	// Perform cleanup
+	if (filePointer != NULL) {
+		fclose(filePointer);
+	}
+
+	return 1; // Indicate an error
+}
+
 void write_line(FILE* file, const char* line)
 {
 	fprintf(file, "%s\n", line);
 }
 
-void gen_latex(Named_Function* functions, Plot_Config plot_config)
+void gen_plot(Named_Function* functions, Plot_Config plot_config)
 {
 	FILE* file = fopen(str_int("%s.%s", plot_config.title, "tex"), "w");
 	if (file == NULL) {
@@ -168,6 +244,38 @@ void gen_latex(Named_Function* functions, Plot_Config plot_config)
 	for (int i = 0; i < plot_config.plot_count; i++)
 	{
 		sprintf(tmp, "\\addplot[color=%s, %s] table[meta=y] {%s};", to_color_name(plot_config.line_color[i]), to_style_name(plot_config.line_style[i]), str_int("%s.%s", functions[i].name, "txt"));
+		write_line(file, tmp);
+
+		sprintf(tmp,"\\addlegendentry{%s}", functions[i].name);
+		write_line(file, tmp);
+	}
+
+	write_line(file, "\\end{axis}");
+	if (plot_config.description != "")
+	{
+		sprintf(tmp, "\\node[below] at (current bounding box.south) {Description: %s};", plot_config.description);
+		write_line(file, tmp);
+	}
+	write_line(file, "\\end{tikzpicture}");
+
+	fclose(file);
+}
+
+void gen_plot_3D(Named_Function_3D* functions, Plot_Config_3D plot_config)
+{
+	FILE* file = fopen(str_int("%s.%s", plot_config.title, "tex"), "w");
+	if (file == NULL) {
+		perror("Error opening file");
+		exit(1);
+	}
+	char tmp[1024];
+
+	write_line(file, "\\begin{tikzpicture}");
+	sprintf(tmp, "\\begin{axis}[axis lines = middle, xlabel={$%s$}, ylabel={$%s$}, zlabel={$%s$}, title={%s},legend style={at={(0.5,-0.15)},anchor=north}]", plot_config.x_axis.label, plot_config.y_axis.label, plot_config.z_axis.label, plot_config.title);
+	write_line(file, tmp);
+	for (int i = 0; i < plot_config.plot_count; i++)
+	{
+		sprintf(tmp, "\\addplot3[surf, color=%s, %s] table[meta=y] {%s};", to_color_name(plot_config.line_color[i]), to_style_name(plot_config.line_style[i]), str_int("%s.%s", functions[i].name, "txt"));
 		write_line(file, tmp);
 
 		sprintf(tmp,"\\addlegendentry{%s}", functions[i].name);
@@ -234,6 +342,7 @@ void write_header(FILE* file)
 	write_line(file, "\\documentclass{article}");
 	write_line(file, "\\usepackage[utf8]{inputenc}");
 	write_line(file, "\\usepackage{pgfplots}");
+	write_line(file, "\\usepackage{float}");
 	write_line(file, "\\pgfplotsset{compat=1.18}");
 	write_line(file, "\\usepackage{verbatim}");
 	write_line(file, "\\begin{document}");
@@ -241,13 +350,15 @@ void write_header(FILE* file)
 
 void write_load_plot(FILE* file, const char* file_name_plot)
 {
-	write_line(file, "\\begin{center}");
-	write_line(file, "\\begin{minipage}{\\textwidth}");
+	write_line(file, "\\begin{figure}[H]");
+	write_line(file, "\\centering");
+	//write_line(file, "\\begin{minipage}{\\textwidth}");
 	char tmp[256];
 	sprintf(tmp, "\\input{%s}", file_name_plot);
 	write_line(file, tmp);
-	write_line(file, "\\end{minipage}");
-	write_line(file, "\\end{center}");
+	//write_line(file, "\\end{minipage}");
+	//write_line(file, "\\end{center}");
+	write_line(file, "\\end{figure}");
 }
 
 void calc_and_plot(FILE* file, Named_Function* functions, Plot_Config plot, const char* path)
@@ -256,7 +367,20 @@ void calc_and_plot(FILE* file, Named_Function* functions, Plot_Config plot, cons
 	if (!calc_and_save(functions, plot)) {
 
 		//Generate seperate tex file defining plot from data file
-		gen_latex(functions, plot);
+		gen_plot(functions, plot);
+		//Load plot from seperate file 
+		write_load_plot(file, str_int("%s.%s",plot.title, "tex"));
+
+	}
+}
+
+void calc_and_plot_3D(FILE* file, Named_Function_3D* functions, Plot_Config_3D plot, const char* path)
+{
+	//Save calculated plot data to file
+	if (!calc_and_save_3D(functions, plot)) {
+
+		//Generate seperate tex file defining plot from data file
+		gen_plot_3D(functions, plot);
 		//Load plot from seperate file 
 		write_load_plot(file, str_int("%s.%s",plot.title, "tex"));
 

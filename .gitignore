@@ -2,6 +2,8 @@
 examples/c/build/
 examples/visual c++/example/x64
 examples/visual c++/example/example
+examples/visual c++/example/*.txt
+examples/visual c++/example/*.tex
 # Ignore vs configs
 .vs
 examples/visual c++/.vs
